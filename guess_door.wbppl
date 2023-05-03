@@ -1,0 +1,14 @@
+
+var doors = ['d1', 'd2', 'd3', 'd4']
+var doorsPs = [1, 1, 1, 1]
+
+var guessTheDoorDist =  Infer({method: 'enumerate'}, function() {
+    var carDoor = sample(Categorical({vs: doors, ps: doorsPs}))
+    var choiceDoor = sample(Categorical({vs: doors}))
+
+    var didWin = carDoor == choiceDoor
+    condition(didWin)
+    return {choiceDoor:choiceDoor}
+})
+
+guessTheDoorDist.getDist()

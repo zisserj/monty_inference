@@ -1,0 +1,28 @@
+
+
+var doors = ['d1', 'd2', 'd3']
+
+
+var winProb = Infer(function() {
+    var makeDoor = mem(function(doorName){
+      var doorProbs = dirichlet(ones([doors.length, 1]))
+      return Categorical({vs: doors, ps: doorProbs})
+    })
+    var carDoor = sample(makeDoor('carDoor'))
+    var guessDoor = sample(Categorical({vs: doors}))
+
+    // open everything but the actual and guess door
+    var possible_to_open = filter(function(d) {
+      return (d != carDoor) && (d != guessDoor)
+    },	doors)
+
+    var openDoor = sample(Categorical({vs: possible_to_open}))
+
+    observe(carDoor != openDoor);
+    
+    var possible_to_chose = filter(function (d) {
+      return (d != openDoor)}, doors)
+
+})
+
+var didWin = openDoor == Bernoulli

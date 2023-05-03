@@ -1,0 +1,52 @@
+
+
+const doors = ['d1', 'd2', 'd3']
+
+var observedData = [
+  { guess: 'd1', left: 'd2', choose: 'd2'},
+  { guess: 'd2', left: 'd3', choose: 'd3'},
+  { guess: 'd2', left: 'd3', choose: 'd3'},
+  { guess: 'd1', left: 'd2', choose: 'd1'}
+]
+
+var parseGame = function(gameStr) {
+  const obsRE = /G(\d+)L(\d+)C(\d+)/
+  const match = gameStr.match(obsRE)
+  return({guess: 'd'+match[1], left: 'd'+match[2], choose: 'd'+match[3]})  
+}
+
+
+var montyGameDist = function(obsData) {
+  return Infer({method: "MCMC", burn: 1000, samples: 10000}, function() {
+    //1_0 -> 2_i
+    // var doorProbs = dirichlet(ones([doors.length, 1]))
+    var doorProbs = dirichlet(Vector([1, 1, 1]))
+    var carDoor = sample(Categorical({vs: doors, ps: doorProbs}))
+  
+    //1_1 -> 3_j
+    var guessDoor = Categorical({vs: doors})
+  
+    var doorsLeft = (carDoor == guessDoor) ? // block 2_i, 3_j
+    [guessDoor, sample(Categorical(
+      {vs: filter(function(d) {return d != carDoor},doors)}))] :
+    [guessDoor, carDoor];
+  
+    // all doors other than the two aboved are opened now
+    var finalDoor = Categorical({vs: doorsLeft})
+    
+
+    var obsFn = function(datum) {
+      var g_guessDoor = sample(guessDoor)
+      var g_finalDoor = sample(finalDoor)
+      condition(g_guessDoor ==  datum.guess)
+      condition(g_finalDoor == datum.choose)
+    }
+    mapData({data: obsData}, obsFn)
+  
+    return {didWin: didWin, swapped: guessDoor == finalDoor}
+  
+  })
+}
+
+montyGameDist(observedData).getDist()
+
