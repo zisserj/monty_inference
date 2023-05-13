@@ -1,0 +1,63 @@
+
+
+const doorsNum = [10,
+	30,
+	50,
+	70,
+	90,
+	110,
+	130,
+	150,
+	170,
+	190,
+	210,
+	230,
+	250,
+	270,
+	290,
+	310,
+	330,
+	350,
+	370,
+	390,
+	410,
+	430,
+	450,
+	470,
+	490]
+
+
+var timeDoorsInfer = function(n) {
+	var doors = Array.apply(null, {length: n}).map(Number.call, Number)
+
+	var t = process.hrtime()
+
+	var montyGameDist = Infer({method: "MCMC", burn: 100, samples: 2000}, function() {
+		//1_0 -> 2_i
+		var doorProbs = dirichlet(T.mul(ones([n, 1]), 5))
+		var carDoor = sample(Categorical({vs: doors, ps: doorProbs}))
+
+		//1_1 -> 3_j
+		var guessDoor = sample(Categorical({vs: doors}))
+
+		var doorsLeft = (carDoor == guessDoor) ? // block 2_i, 3_j
+		[guessDoor, sample(Categorical(
+			{vs: filter(function(d) {return d != carDoor},doors)}))] :
+		[guessDoor, carDoor];
+
+		// all doors other than the two aboved are opened now
+		var switchDoor = flip()
+		var finalDoor = switchDoor ? doorsLeft[1] : doorsLeft[0];
+		
+		condition(switchDoor)
+
+		return {win: finalDoor == carDoor}
+	})
+	var res = montyGameDist.getDist()
+	var t2 = process.hrtime(t);
+
+	return t2[1]/n
+}
+
+var times = map(timeDoorsInfer, doorsNum)
+display(times)

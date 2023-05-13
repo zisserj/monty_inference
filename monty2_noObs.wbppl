@@ -1,12 +1,12 @@
 
 
-const doors = ['d1', 'd2', 'd3']
+var doors = [1, 2, 3]
 
 
-var montyGameDist = Infer({method: "MCMC", burn: 1000,samples: 10000}, function() {
+var montyGameDist = Infer({method: "MCMC", burn: 100, samples: 1000}, function() {
   //1_0 -> 2_i
-  // var doorProbs = dirichlet(ones([doors.length, 1]))
-  var doorProbs = dirichlet(Vector([5, 5, 5]))
+  var doorProbs = dirichlet(T.mul(ones([doors.length, 1]), 20))
+  //var doorProbs = dirichlet(Vector([5, 5, 5]))
   var carDoor = sample(Categorical({vs: doors, ps: doorProbs}))
 
   //1_1 -> 3_j
@@ -20,11 +20,11 @@ var montyGameDist = Infer({method: "MCMC", burn: 1000,samples: 10000}, function(
   // all doors other than the two aboved are opened now
   var switchDoor = flip()
   var finalDoor = switchDoor ? doorsLeft[1] : doorsLeft[0];
- 
-  condition(guessDoor=='d1' && finalDoor=='d2')
+  
+  condition(switchDoor)
 
   return {win: finalDoor == carDoor}
 })
 
-montyGameDist.getDist()
 
+display(montyGameDist.getDist())
