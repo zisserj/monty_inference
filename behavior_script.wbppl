@@ -1,0 +1,100 @@
+
+
+// could make something to fill out the script so there are no empty entries but eh
+var bscript = {
+	threads: ['bt1','bt2','bt3'],
+	states: {bt1: [0, 1, 2, 3],
+			 bt2: [0, 1, 2, 3],
+			 bt3: [0, 1, 2, 3]},
+	events: ['default'] + ['g1', 'g2', 'g3', 'h1','h2','h3','o1','o2','o3'],
+	requested: { bt1: { 0: [['h1',1],['h2',1],['h3',1]],
+						1: [['g1',2],['g2',2],['g3',2]],
+						2: [['o1',3],['o2',3],['o3',3]]},
+				 bt2: {},
+				 bt3: {}},
+	waited: {bt1: {},
+			 bt2: {0: [['h1',1],['h2',2],['h3',3]]},
+			 bt3: {0: [['g1',1],['g2',2],['g3',3]]}},
+	blocked: { bt1: {},
+			   bt2: {1: ['o1'],
+			   		 2: ['o2'],
+			   		 3: ['o3']},
+			   bt3: {1: ['o1'],
+			   		 2: ['o2'],
+			   		 3: ['o3']}},
+	init: {bt1: 0,
+		   bt2: 0,
+		   bt3: 0},
+	time: 4 //[0,1,2,3]
+}
+
+
+//dist = Categorical({vs:["event1", "event2"], ps: [0.69, 31]})
+
+//
+var scriptRun = function(script, obs) { //returns list of [{event: "a", states: {bt1: 0, bt2: 1}}...]
+	
+	var step = function(curStates) {
+		var events = {req:[], blocked: []}
+		map(function(t) {
+				if (curStates[t] in script.requested[t])
+					events.req.push(script.requested[t][curStates[t]])
+				if (curStates[t] in script.blocked[t]) 
+					events.blocked.push(script.blocked[t][curStates[t]])},
+			Object.keys(curStates));
+		var blockedEvents = events.blocked.flat()
+		var reqEvents = map(function(e){return e[0]},events.req.flat())
+		var filteredEvents = filter(function(e){
+			return !blockedEvents.includes(e)}, reqEvents)
+		//display(JSON.stringify(blockedEvents))
+		// in case of no agreement on next event
+		if (filteredEvents.length == 0)
+			return {event: 'default', state: curStates}
+		// for prototype sake, assume the probabilities are uniform
+		var nextEvent = sample(Categorical({vs: filteredEvents}))
+
+		var newStates = map(function(t) {
+			if (curStates[t] in script.requested[t]){
+				var foundEvent = map(function(e){return e[0]},
+									script.requested[t][curStates[t]]).indexOf(nextEvent)
+				if (foundEvent != -1)
+					return [t, script.requested[t][curStates[t]][foundEvent][1]]}
+			if (curStates[t] in script.waited[t]){
+				var foundEvent = map(function(e){return e[0]},
+									script.waited[t][curStates[t]]).indexOf(nextEvent)
+				if (foundEvent != -1)
+					return [t, script.waited[t][curStates[t]][foundEvent][1]]}
+			return [t, curStates[t]]},
+			Object.keys(curStates));
+		return {event: nextEvent, state: Object.fromEntries(newStates)}}
+
+	var runResult = {events: [""], states: [script.init]}
+	mapN(function(time){
+		// run finished, pad the rest
+		if (runResult.events[time] == "default"){
+			runResult.events.push("default");
+			runResult.states.push(runResult.states[time])
+			return
+		}
+		var res = step(runResult.states[time]);
+		runResult.events.push(res.event)
+		runResult.states.push(res.state)
+	}, script.time)
+	return runResult;}
+
+scriptRun(bscript, undefined)
+/*
+	var cur_states = {bt1: 0, bt2: 3, bt3:2}
+	
+	var req_events = []
+	var blocked_events = []
+
+	for t_state in cur_states:
+		req_events.append( t_state.requested)
+		blocked_events.append(t_state.blocked)
+
+	possible_events = req_events - blocked_events
+
+// returns list of events, index in list = time
+*/
+
