@@ -25,15 +25,10 @@ var bscript = {
 	init: {bt1: 0,
 		   bt2: 0,
 		   bt3: 0},
-	time: 4 //[0,1,2,3]
+	time: 3 //[0,1,2]
 }
 
-
-//dist = Categorical({vs:["event1", "event2"], ps: [0.69, 31]})
-
-//
-var scriptRun = function(script, obs) { //returns list of [{event: "a", states: {bt1: 0, bt2: 1}}...]
-	
+var scriptRun = function(script) { //returns list of [{event: "a", states: {bt1: 0, bt2: 1}}...]
 	var step = function(curStates) {
 		var events = {req:[], blocked: []}
 		map(function(t) {
@@ -70,6 +65,7 @@ var scriptRun = function(script, obs) { //returns list of [{event: "a", states: 
 
 	var runResult = {events: [""], states: [script.init]}
 	mapN(function(time){
+		console.log(time)
 		// run finished, pad the rest
 		if (runResult.events[time] == "default"){
 			runResult.events.push("default");
@@ -80,21 +76,15 @@ var scriptRun = function(script, obs) { //returns list of [{event: "a", states: 
 		runResult.events.push(res.event)
 		runResult.states.push(res.state)
 	}, script.time)
-	return runResult;}
+	return runResult;
+}
 
-scriptRun(bscript, undefined)
-/*
-	var cur_states = {bt1: 0, bt2: 3, bt3:2}
-	
-	var req_events = []
-	var blocked_events = []
+var inferRes = function(script, obs) {
+	return Infer({}, function(){
+		var runResult = scriptRun(script);
+		console.log(runResult)
+		var didHappen = runResult.events.includes('o1')
+		return {d1: didHappen}})
+}
 
-	for t_state in cur_states:
-		req_events.append( t_state.requested)
-		blocked_events.append(t_state.blocked)
-
-	possible_events = req_events - blocked_events
-
-// returns list of events, index in list = time
-*/
-
+inferRes(bscript, undefined).getDist()
