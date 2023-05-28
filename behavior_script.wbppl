@@ -6,7 +6,7 @@ var bscript = {
 	states: {bt1: [0, 1, 2, 3],
 			 bt2: [0, 1, 2, 3],
 			 bt3: [0, 1, 2, 3]},
-	events: ['default'] + ['g1', 'g2', 'g3', 'h1','h2','h3','o1','o2','o3'],
+	//events: ['default'] + ['g1', 'g2', 'g3', 'h1','h2','h3','o1','o2','o3'],
 	requested: { bt1: { 0: [['h1',1],['h2',1],['h3',1]],
 						1: [['g1',2],['g2',2],['g3',2]],
 						2: [['o1',3],['o2',3],['o3',3]]},
@@ -28,7 +28,7 @@ var bscript = {
 	time: 3 //[0,1,2]
 }
 
-var scriptRun = function(script) { //returns list of [{event: "a", states: {bt1: 0, bt2: 1}}...]
+var scriptRun = function(script, obs) { //returns list of [{event: "a", states: {bt1: 0, bt2: 1}}...]
 	var step = function(curStates) {
 		var events = {req:[], blocked: []}
 		map(function(t) {
@@ -62,29 +62,58 @@ var scriptRun = function(script) { //returns list of [{event: "a", states: {bt1:
 			return [t, curStates[t]]},
 			Object.keys(curStates));
 		return {event: nextEvent, state: Object.fromEntries(newStates)}}
-
-	var runResult = {events: [""], states: [script.init]}
-	mapN(function(time){
-		console.log(time)
-		// run finished, pad the rest
-		if (runResult.events[time] == "default"){
-			runResult.events.push("default");
-			runResult.states.push(runResult.states[time])
-			return
-		}
-		var res = step(runResult.states[time]);
-		runResult.events.push(res.event)
-		runResult.states.push(res.state)
-	}, script.time)
-	return runResult;
+	
+	var runScript = function() {
+		var init = {events: [""], states: [script.init]}
+		var runResult = reduce(function(time, acc){
+			// run finished, pad the rest
+			if (acc.events[time] == "default"){
+				acc.events.push("default");
+				acc.states.push(acc.states[time])
+				return acc}
+			var res = step(acc.states[time]);
+			acc.events.push(res.event)
+			acc.states.push(res.state)
+			return acc}, init, [3,2,1,0])
+		return runResult
+	}
+	return Infer({method: "SMC",particles: 2000, rejuvKernel: "HMC"}, function(){
+		var res = runScript();
+		condition(res.events.includes('o2') && res.events.includes('g1'))
+		var winOdds = {d1: res.events.includes('h1'),
+					   d2: res.events.includes('h2'),
+					   d3: res.events.includes('h3'),}
+		return winOdds
+	})
 }
 
-var inferRes = function(script, obs) {
-	return Infer({}, function(){
-		var runResult = scriptRun(script);
-		console.log(runResult)
-		var didHappen = runResult.events.includes('o1')
-		return {d1: didHappen}})
+var generateBScript = function(n) {
+	globalStore.bl = {}
+	var s = {	threads: ['bt1','bt2','bt3'],
+				states:{bt1: [0,1,2,3], bt2:[0], bt3:[0]},
+				//events: ['default'], //not really used rn
+				requested: {bt1: {0:[], 1:[], 2:[]},bt2: {}, bt3: {}},
+				waited: {bt1: {} ,bt2: {0:[]}, bt3: {0:[]}},
+				blocked: {bt1: {}, bt2: {}, bt3:{}},
+				init: {bt1: 0, bt2: 0, bt3: 0},
+			 	time: 3 //[0,1,2]
+			}
+	var b = Object.fromEntries(mapN(function(i) {
+		var d = i+1
+		s.states['bt2'].push(d)
+		s.states['bt3'].push(d)
+		s.requested.bt1[0].push(['h'+d,1])
+		s.requested.bt1[1].push(['g'+d,2])
+		s.requested.bt1[2].push(['o'+d,3])
+		s.waited.bt2[0].push(['h'+d,d])
+		s.waited.bt3[0].push(['g'+d,d])
+		return [d, ['o'+d]]
+		}, n))
+	var blockedObj = {blocked: {bt1: {}, bt2: b, bt3:b}}
+	return Object.assign(s, blockedObj)
 }
+const res = generateBScript(3)
 
-inferRes(bscript, undefined).getDist()
+assert.deepEqual(res, bscript)
+
+scriptRun(res, undefined).getDist()
