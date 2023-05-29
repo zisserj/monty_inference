@@ -1,0 +1,58 @@
+
+
+var days = [1,2,3,4,5,6,7]
+var agab = ['girl', 'boy']
+
+var tue_boy = {day: 3, ag: 'boy'}
+
+var predictives = function(nKids){
+	return Infer({}, function() {
+		var dayProbs = Categorical({vs: days})
+		//var agabProbs = dirichlet(T.mul(ones([agab.length, 1]), 100,100))
+		var agabDist = Categorical({vs: agab})
+		
+		var makeKid = function() {
+			return {day: sample(dayProbs),
+					ag: sample(agabDist)}};
+		
+		var kids = mapN(makeKid, nKids)
+		
+		var has_tue_boy = reduce(function(x, acc){
+			return (acc || x == tue_boy)
+		}, false, kids)
+
+		condition(has_tue_boy)
+		
+		return {first_girl: kids[0].ag == 'girl'}
+	})
+}
+/*
+var mulKids = Infer({method: "enumerate"}, function(nKids) {
+	var kids = mapN(drawKid, nKids)
+	
+	return kids[0]
+})
+
+
+reduce(function(x, acc){
+	return (acc || x === tue_boy)
+}, false, [    { day: 7, ag: 'boy' },
+{ day: 7, ag: 'girl' },
+{ day: 6, ag: 'boy' },
+{ day: 6, ag: 'girl' },
+{ day: 5, ag: 'boy' },
+{ day: 5, ag: 'girl' },
+{ day: 4, ag: 'boy' },
+{ day: 4, ag: 'girl' },
+{ day: 3, ag: 'boy' },
+{ day: 3, ag: 'girl' },
+{ day: 2, ag: 'boy' },
+{ day: 2, ag: 'girl' },
+{ day: 1, ag: 'boy' },
+{ day: 1, ag: 'girl' }
+])
+*/
+
+display({ day: 3, ag: 'boy' } === tue_boy)
+//predictives(3).getDist()
+

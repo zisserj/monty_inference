@@ -1,30 +1,12 @@
 
 
-const doorsNum = [10,
-	30,
-	50,
-	70,
-	90,
-	110,
-	130,
-	150,
-	170,
-	190,
-	210,
-	230,
-	250,
-	270,
-	290,
-	310,
-	330,
-	350,
-	370,
-	390,
-	410,
-	430,
-	450,
-	470,
-	490]
+const doorsNum = [
+	10,  30,  50,  70,  90, 110,
+   130, 150, 170, 190, 210, 230,
+   250, 270, 290, 310, 330, 350,
+   370, 390, 410, 430, 450, 470,
+   490
+ ]
 
 
 var timeDoorsInfer = function(n) {
@@ -55,8 +37,9 @@ var timeDoorsInfer = function(n) {
 	})
 	var res = montyGameDist.getDist()
 	var t2 = process.hrtime(t);
+	var t2_ns = t[0]*1000000000 + t[1]
 
-	return t2[1]/n
+	return t2_ns/n
 }
 
 var times = map(timeDoorsInfer, doorsNum)

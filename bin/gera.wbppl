@@ -40,4 +40,5 @@ var dist = Infer({ method: 'enumerate' }, function () {
 });
 
 //viz.table(dist);
-dist.getDist()
+//dist.getDist()
+hmm(3)
