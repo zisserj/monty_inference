@@ -1,33 +1,5 @@
 
 
-// could make something to fill out the script so there are no empty entries but eh
-var bscript = {
-	threads: ['bt1','bt2','bt3'],
-	states: {bt1: [0, 1, 2, 3],
-			 bt2: [0, 1, 2, 3],
-			 bt3: [0, 1, 2, 3]},
-	//events: ['default'] + ['g1', 'g2', 'g3', 'h1','h2','h3','o1','o2','o3'],
-	requested: { bt1: { 0: [['h1',1],['h2',1],['h3',1]],
-						1: [['g1',2],['g2',2],['g3',2]],
-						2: [['o1',3],['o2',3],['o3',3]]},
-				 bt2: {},
-				 bt3: {}},
-	waited: {bt1: {},
-			 bt2: {0: [['h1',1],['h2',2],['h3',3]]},
-			 bt3: {0: [['g1',1],['g2',2],['g3',3]]}},
-	blocked: { bt1: {},
-			   bt2: {1: ['o1'],
-			   		 2: ['o2'],
-			   		 3: ['o3']},
-			   bt3: {1: ['o1'],
-			   		 2: ['o2'],
-			   		 3: ['o3']}},
-	init: {bt1: 0,
-		   bt2: 0,
-		   bt3: 0},
-	time: 3 //[0,1,2]
-}
-
 var scriptRun = function(script, obs) { //returns list of [{event: "a", states: {bt1: 0, bt2: 1}}...]
 	var step = function(curStates) {
 		var events = {req:[], blocked: []}
@@ -41,11 +13,13 @@ var scriptRun = function(script, obs) { //returns list of [{event: "a", states: 
 		var reqEvents = map(function(e){return e[0]},events.req.flat())
 		var filteredEvents = filter(function(e){
 			return !blockedEvents.includes(e)}, reqEvents)
-		//display(JSON.stringify(blockedEvents))
 		// in case of no agreement on next event
 		if (filteredEvents.length == 0)
 			return {event: 'default', state: curStates}
+		
 		// for prototype sake, assume the probabilities are uniform
+		//TODO: assign probability to events
+		//TODO: use observation to force choice
 		var nextEvent = sample(Categorical({vs: filteredEvents}))
 
 		var newStates = map(function(t) {
@@ -74,12 +48,12 @@ var scriptRun = function(script, obs) { //returns list of [{event: "a", states: 
 			var res = step(acc.states[time]);
 			acc.events.push(res.event)
 			acc.states.push(res.state)
-			return acc}, init, [3,2,1,0])
+			return acc}, init, [3,2,1,0]) //TODO reduce is rtl, find workaround?
 		return runResult
 	}
-	return Infer({method: "SMC",particles: 2000, rejuvKernel: "HMC"}, function(){
+	return Infer({method: "SMC",particles: 1000, rejuvKernel: "HMC"}, function(){
 		var res = runScript();
-		condition(res.events.includes('o2') && res.events.includes('g1'))
+		//condition(res.events.includes('o2') && res.events.includes('g1'))
 		var winOdds = {d1: res.events.includes('h1'),
 					   d2: res.events.includes('h2'),
 					   d3: res.events.includes('h3'),}
@@ -87,8 +61,35 @@ var scriptRun = function(script, obs) { //returns list of [{event: "a", states: 
 	})
 }
 
+// sample script, trusty monty hall
+var bscript = {
+	threads: ['bt1','bt2','bt3'],
+	states: {bt1: [0, 1, 2, 3],
+			 bt2: [0, 1, 2, 3],
+			 bt3: [0, 1, 2, 3]},
+	//events: ['default'] + ['g1', 'g2', 'g3', 'h1','h2','h3','o1','o2','o3'],
+	requested: { bt1: { 0: [['h1',1],['h2',1],['h3',1]],
+						1: [['g1',2],['g2',2],['g3',2]],
+						2: [['o1',3],['o2',3],['o3',3]]},
+				 bt2: {},
+				 bt3: {}},
+	waited: {bt1: {},
+			 bt2: {0: [['h1',1],['h2',2],['h3',3]]},
+			 bt3: {0: [['g1',1],['g2',2],['g3',3]]}},
+	blocked: { bt1: {},
+			   bt2: {1: ['o1'],
+			   		 2: ['o2'],
+			   		 3: ['o3']},
+			   bt3: {1: ['o1'],
+			   		 2: ['o2'],
+			   		 3: ['o3']}},
+	init: {bt1: 0,
+		   bt2: 0,
+		   bt3: 0},
+	time: 3 //[0,1,2]
+}
+
 var generateBScript = function(n) {
-	globalStore.bl = {}
 	var s = {	threads: ['bt1','bt2','bt3'],
 				states:{bt1: [0,1,2,3], bt2:[0], bt3:[0]},
 				//events: ['default'], //not really used rn
@@ -112,8 +113,25 @@ var generateBScript = function(n) {
 	var blockedObj = {blocked: {bt1: {}, bt2: b, bt3:b}}
 	return Object.assign(s, blockedObj)
 }
-const res = generateBScript(3)
 
-assert.deepEqual(res, bscript)
+const doorsNum = [	10,  30,  50,  70,  90, 110,
+   130, 150, 170, 190, 210, 230,
+   250, 270, 290, 310, 330, 350,
+   370, 390, 410, 430, 450, 470,
+   490
+ ]
 
-scriptRun(res, undefined).getDist()
+const test = [430, 450, 470]
+var times = map(function(n) {
+	const script = generateBScript(n)
+	var t = process.hrtime()
+	var res = scriptRun(script)
+	var t2 = process.hrtime(t)
+	var t2_ns = t[0]*1000000000 + t[1]
+	//console.log(res.getDist())
+	return t2_ns/n
+}, doorsNum)
+display(times)
+
+
+//scriptRun(res, undefined).getDist()
