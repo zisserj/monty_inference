@@ -51,7 +51,7 @@ var scriptRun = function(script, obs) { //returns list of [{event: "a", states: 
 			return acc}, init, [3,2,1,0]) //TODO reduce is rtl, find workaround?
 		return runResult
 	}
-	return Infer({method: "SMC",particles: 1000, rejuvKernel: "HMC"}, function(){
+	return Infer({method: "SMC",particles: 500, rejuvKernel: "HMC"}, function(){
 		var res = runScript();
 		//condition(res.events.includes('o2') && res.events.includes('g1'))
 		var winOdds = {d1: res.events.includes('h1'),
@@ -121,7 +121,6 @@ const doorsNum = [	10,  30,  50,  70,  90, 110,
    490
  ]
 
-const test = [430, 450, 470]
 var times = map(function(n) {
 	const script = generateBScript(n)
 	var t = process.hrtime()

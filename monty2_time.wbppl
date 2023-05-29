@@ -14,7 +14,7 @@ var timeDoorsInfer = function(n) {
 
 	var t = process.hrtime()
 
-	var montyGameDist = Infer({method: "MCMC", burn: 100, samples: 2000}, function() {
+	var montyGameDist = Infer({method: "SMC",particles: 500, rejuvKernel: "HMC"}, function() {
 		//1_0 -> 2_i
 		var doorProbs = dirichlet(T.mul(ones([n, 1]), 5))
 		var carDoor = sample(Categorical({vs: doors, ps: doorProbs}))
